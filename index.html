@@ -6,23 +6,12 @@ export default function App() {
   const [plant, setPlant] = useState("");
   const [availablePlants, setAvailablePlants] = useState([]);
   const [result, setResult] = useState(null);
-  const [flowers, setFlowers] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const API_KEY = "sk-bJio68b47a9d56aff12144"; // replace with your Perenual API key
+ 
+  const API_KEY = "sk-QaVy68e289b31be2b12144";
 
-  const addFlower = () => {
-    const id = Date.now();
-    setFlowers([...flowers, id]);
-    setTimeout(() => setFlowers((f) => f.filter((x) => x !== id)), 4000);
-  };
-
-  const handleSelect = (choice) => {
-    setMode(choice);
-    setResult(null);
-    setPlant("");
-    addFlower();
-  };
-
+  // Fetch list of available plants on load
   useEffect(() => {
     const fetchPlants = async () => {
       try {
@@ -30,7 +19,10 @@ export default function App() {
           `https://perenual.com/api/species-list?key=${API_KEY}`
         );
         const data = await res.json();
-        const names = data.data.map((p) => p.common_name).filter(Boolean);
+        const names = data.data
+          .map((p) => p.common_name)
+          .filter(Boolean)
+          .slice(0, 30); // limit to 30 for performance
         setAvailablePlants(names);
       } catch (err) {
         console.error("Error fetching plant list:", err);
@@ -40,8 +32,12 @@ export default function App() {
   }, []);
 
   const fetchPlantInfo = async () => {
-    if (!plant) return;
-    addFlower();
+    if (!plant) {
+      setResult("Please select a plant first!");
+      return;
+    }
+    setLoading(true);
+    setResult(null);
 
     try {
       const res = await fetch(
@@ -51,7 +47,8 @@ export default function App() {
       const plantData = data.data?.[0];
 
       if (!plantData) {
-        setResult("No data available for this plant.");
+        setResult("No data found for this plant 🌱");
+        setLoading(false);
         return;
       }
 
@@ -59,56 +56,59 @@ export default function App() {
 
       if (mode === "water") {
         message += `💧 Watering: ${
-          plantData.watering || "Water moderately based on soil moisture"
+          plantData.watering || "Water moderately based on soil moisture."
         }\n`;
         message += `☀️ Sunlight: ${
-          plantData.sunlight || "Adjust light according to plant type"
+          plantData.sunlight || "Provide bright, indirect light."
         }\n`;
         message += `🪴 Soil: ${
-          plantData.soil_type || "Use well-draining soil"
+          plantData.soil_type || "Use well-draining potting mix."
         }`;
       } else if (mode === "help") {
         message += `🌱 Propagation: ${
-          plantData.propagation || "Try adjusting sunlight, water, or soil"
+          plantData.propagation ||
+          "Try adjusting water, sunlight, or soil conditions."
         }\n`;
         message += `🌡️ Temperature: ${
-          plantData.temperature || "Keep in moderate indoor temperatures"
+          plantData.temperature || "Keep in moderate indoor temperatures."
         }\n`;
         message += `☀️ Sunlight: ${
-          plantData.sunlight || "Adjust light according to plant type"
+          plantData.sunlight || "Adjust lighting as needed."
         }\n`;
         message += `💧 Watering: ${
-          plantData.watering || "Water moderately based on soil moisture"
+          plantData.watering || "Avoid overwatering; check soil moisture."
         }`;
       }
 
       setResult(message);
     } catch (err) {
-      setResult("Network error. Please check your connection.");
+      setResult("⚠️ Network error. Please check your connection.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-green-50 p-6 relative">
-      <h1 className="text-3xl font-bold mb-6">🌱 Plant Care Assistant</h1>
+    <div style={styles.container}>
+      <h1 style={styles.title}>🌱 Plant Care Assistant</h1>
 
-      {/* Buttons */}
-      <div className="flex gap-4 mb-6">
-        <button onClick={() => handleSelect("water")}>
+      {/* Mode Buttons */}
+      <div style={styles.buttonGroup}>
+        <button style={styles.button} onClick={() => setMode("water")}>
           How much to water plants
         </button>
-        <button onClick={() => handleSelect("help")}>
+        <button style={styles.button} onClick={() => setMode("help")}>
           My plant isn’t doing well
         </button>
       </div>
 
-      {/* Dropdown + Search */}
+      {/* Dropdown + Result */}
       {mode && (
-        <div className="w-full max-w-md border p-4 rounded flex flex-col gap-2">
+        <div style={styles.card}>
           <select
             value={plant}
             onChange={(e) => setPlant(e.target.value)}
-            className="border p-2 rounded w-full"
+            style={styles.select}
           >
             <option value="">Select a plant...</option>
             {availablePlants.map((p, i) => (
@@ -117,23 +117,24 @@ export default function App() {
               </option>
             ))}
           </select>
-          <button onClick={fetchPlantInfo}>Search</button>
 
-          {result && (
-            <pre className="mt-4 text-lg whitespace-pre-wrap">{result}</pre>
-          )}
+          <button style={styles.searchButton} onClick={fetchPlantInfo}>
+            {loading ? "Loading..." : "Search"}
+          </button>
+
+          {result && <pre style={styles.result}>{result}</pre>}
         </div>
       )}
 
-      {/* Flower border at the bottom */}
-      <div className="absolute bottom-0 left-0 w-full flex justify-between px-4">
-        {Array.from({ length: 15 }).map((_, i) => (
+      {/* Animated flower border */}
+      <div style={styles.flowerRow}>
+        {Array.from({ length: 10 }).map((_, i) => (
           <motion.div
             key={i}
-            className="text-pink-400 text-2xl"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: i * 0.1, duration: 1 }}
+            style={styles.flower}
           >
             🌸
           </motion.div>
@@ -142,3 +143,83 @@ export default function App() {
     </div>
   );
 }
+
+// Inline styles
+const styles = {
+  container: {
+    minHeight: "100vh",
+    backgroundColor: "#e8f5e9",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "2rem",
+    position: "relative",
+    fontFamily: "system-ui, sans-serif",
+  },
+  title: {
+    fontSize: "2rem",
+    fontWeight: "bold",
+    marginBottom: "1.5rem",
+  },
+  buttonGroup: {
+    display: "flex",
+    gap: "1rem",
+    marginBottom: "1.5rem",
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
+  button: {
+    backgroundColor: "#4caf50",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    padding: "0.75rem 1.25rem",
+    cursor: "pointer",
+    fontSize: "1rem",
+  },
+  card: {
+    width: "100%",
+    maxWidth: "400px",
+    backgroundColor: "white",
+    border: "1px solid #ccc",
+    borderRadius: "10px",
+    padding: "1rem",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75rem",
+  },
+  select: {
+    padding: "0.5rem",
+    fontSize: "1rem",
+    borderRadius: "5px",
+    border: "1px solid #ccc",
+  },
+  searchButton: {
+    backgroundColor: "#81c784",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    padding: "0.5rem 1rem",
+    cursor: "pointer",
+  },
+  result: {
+    whiteSpace: "pre-wrap",
+    marginTop: "1rem",
+    fontSize: "1rem",
+    color: "#333",
+  },
+  flowerRow: {
+    position: "absolute",
+    bottom: "10px",
+    left: 0,
+    width: "100%",
+    display: "flex",
+    justifyContent: "space-around",
+    padding: "0 1rem",
+  },
+  flower: {
+    fontSize: "1.5rem",
+  },
+};
