@@ -50,7 +50,7 @@
 <div class="flower-row" id="flowers"></div>
 
 <script>
-  const API_KEY = "sk-QaVy68e289b31be2b12144"; // your Perenual API key
+  const API_KEY = "sk-QaVy68e289b31be2b12144"; 
 
   let mode = null;
   let availablePlants = [];
@@ -87,7 +87,7 @@
     try {
       const res = await fetch(`https://perenual.com/api/species-list?key=${API_KEY}`);
       const data = await res.json();
-      availablePlants = data.data.map(p => p.common_name).filter(Boolean).slice(0, 30);
+      availablePlants = data.data.map(p => p.common_name).filter(Boolean).slice(0, 75);
       availablePlants.forEach(p => {
         const option = document.createElement("option");
         option.value = p;
@@ -134,3 +134,4 @@
 
 </body>
 </html>
+
